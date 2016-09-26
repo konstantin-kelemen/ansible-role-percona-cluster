@@ -1,0 +1,5 @@
+---
+percona_cluster_name: icinga2-cluster
+percona_cluster_bootstrap_hostname: "{{ hostvars[groups['percona'][0]]['inventory_hostname'] }}"
+percona_cluster_stt_user: sstuser
+percona_cluster_stt_password: s3cret
