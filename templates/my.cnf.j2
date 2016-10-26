@@ -10,9 +10,7 @@ wsrep_provider = /usr/lib64/libgalera_smm.so
 {# list of cluster members #}
 {% set cluster_members = [] -%}
 {%- for node in groups['percona'] %}
-  {%- if hostvars[node].ansible_default_ipv4.address !=  ansible_eth0.ipv4.address %}
-    {%- set _ = cluster_members.append(hostvars[node].ansible_default_ipv4.address) -%}
-  {% endif -%}
+  {%- set _ = cluster_members.append(hostvars[node].ansible_ssh_host) -%}
 {% endfor -%}
 wsrep_cluster_address = gcomm://{{ ",".join(cluster_members) }}
 

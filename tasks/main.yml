@@ -1,17 +1,20 @@
 ---
 # tasks file for percona-cluster
-- yum: name=https://www.percona.com/redir/downloads/percona-release/redhat/0.1-4/percona-release-0.1-4.noarch.rpm state=present
+- name: Add Percona repository
+  yum: name=https://www.percona.com/redir/downloads/percona-release/redhat/0.1-4/percona-release-0.1-4.noarch.rpm state=present
 
-- yum: name={{ item }} state=present
+- name: Install packages
+  yum: name={{ item }} state=present
   with_items:
-    - MySQL-python
-    - Percona-XtraDB-Cluster-56
-    - libselinux-python
+  - MySQL-python
+  - Percona-XtraDB-Cluster-56
+  - libselinux-python
 
 - name: Disable selinux
   selinux: state=disabled
 
-- template: src=my.cnf.j2 dest=/etc/my.cnf
+- name: Generate /etc/my.cnf
+  template: src=my.cnf.j2 dest=/etc/my.cnf
 
 - name: Check that test database exists
   stat: path=/var/lib/mysql/test get_checksum=False get_md5=False
@@ -19,7 +22,15 @@
   register: testdb
 
 - name: Bootstrap cluster
-  shell: 'systemctl start mysql@bootstrap.service'
+  command: 'systemctl start mysql@bootstrap.service'
+  run_once: true
+  delegate_to: "{{ percona_cluster_bootstrap_hostname }}"
+  args:
+    warn: False
+    creates: "/var/lib/mysql/{{ inventory_hostname }}.pid"
+
+- name: Enable MySQL server
+  service: name=mysql enabled=yes
   run_once: true
   delegate_to: "{{ percona_cluster_bootstrap_hostname }}"
 
@@ -56,5 +67,12 @@
   run_once: true
   delegate_to: "{{ percona_cluster_bootstrap_hostname }}"
 
-- service: name=mysql enabled=yes state=started
-  when: inventory_hostname != percona_cluster_bootstrap_hostname
+- name: Enable and start MySQL server on the second node
+  service: name=mysql enabled=yes state=started
+  run_once: true
+  delegate_to: "{{ groups.percona[1] }}"
+
+- name: Enable and start MySQL server on the third node
+  service: name=mysql enabled=yes state=started
+  run_once: true
+  delegate_to: "{{ groups.percona[2] }}"
